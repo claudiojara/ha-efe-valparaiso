@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import Departures, EfeApiError, fetch_departures
 from .const import DOMAIN, MAX_BACKOFF
@@ -48,6 +49,7 @@ class EfeCoordinator(DataUpdateCoordinator[Departures]):
                 self._ssl_context,
                 self.origin,
                 self.destination,
+                dt_util.now(),
             )
         except EfeApiError as err:
             # Con la fuente caída se consulta cada vez menos, hasta 10 minutos.

@@ -30,11 +30,16 @@ Los ids dependen del idioma con que se crearon (en inglés: `..._next_train`, `.
 
 Atributos de *Próximo tren*:
 
+- `origen`, `destino`, `consultado_en`: el par configurado y la hora de la última consulta a EFE.
 - `hasta`, `tipo`, `id_servicio`: tal como los entrega EFE. **Respeta `hasta`**: hacia Limache también
   aparecen trenes cortos «Hasta Sargento Aldea».
+- `llega_a_destino`: si el primer tren pasa por tu destino, calculado con el orden de las estaciones
+  (Puerto = 1 … Limache = 21). Un tren «Hasta Sargento Aldea» no llega a Limache, pero sí a La Concepción.
+- `hora_estimada`: hora de la consulta más los minutos que informó EFE; `null` con «cercano».
 - `minutos`: número solo cuando EFE dice explícitamente «N minutos»; con «cercano» es `null`. No se
   inventan tiempos.
-- `servicios`: lista completa (`hasta`, `tipo`, `tiempo`, `idServicio`, `minutos`). No se guarda en el historial.
+- `servicios`: lista completa (`hasta`, `tipo`, `tiempo`, `idServicio` tal como llegan, más `minutos`,
+  `hora_estimada`, `estacion_final` y `llega_a_destino`). No se guarda en el historial.
 - `estado_consulta`: `servicios_informados` o `sin_servicios_informados`.
 - `aviso_efe`, `operabilidad`: avisos que acompañan la respuesta de EFE. La advertencia «Servicio no
   disponible por el momento» aparece incluso con trenes circulando y ambas vías en `YES`; no la uses sola
@@ -50,9 +55,52 @@ Atributos de *Próximo tren*:
 - **No disponible**: no se pudo consultar a EFE o cambió el formato. No se muestra una lista vacía ni datos
   antiguos en su lugar; se reintenta con espera creciente, hasta 10 minutos.
 
-## Ejemplos
+## Tarjeta `custom:efe-valparaiso-card`
 
-Tarjeta:
+La integración trae su propia tarjeta; no hay que instalar nada más. Muestra uno o dos trayectos lado a lado
+(por ejemplo ida y vuelta) con minutos, hora estimada, unidad simple/doble y los trenes siguientes. Los trenes
+que no llegan a tu destino quedan marcados con su estación final. Al tocar un trayecto se ve la lista completa.
+
+```yaml
+type: custom:efe-valparaiso-card
+titulo: Trabajo                         # opcional
+modo: input_boolean.tren_automatico     # opcional, ver abajo
+trayectos:
+  - entity: sensor.efe_la_concepcion_francia_proximo_tren
+  - entity: sensor.efe_francia_la_concepcion_proximo_tren
+    nombre: Vuelta                      # opcional
+```
+
+- **Datos antiguos:** si la última consulta tiene 2 minutos o más, los números se ven atenuados y la tarjeta
+  dice «Dato de hace N min».
+- **Modo automático/manual (opcional):** con `modo` apuntando a un `input_boolean`, la tarjeta muestra un botón
+  Auto/Manual; en manual aparece el botón Actualizar (`homeassistant.update_entity`). Para que «manual» de verdad
+  no consulte a EFE, desactiva el sondeo de las entradas (*⋮ → Opciones del sistema → Habilitar sondeo*) y crea
+  una automatización que actualice los sensores cuando el helper esté encendido, por ejemplo:
+
+  ```yaml
+  triggers:
+    - trigger: time_pattern
+      minutes: "/1"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.tren_automatico
+      state: "on"
+    - condition: time
+      after: "06:00:00"
+      before: "23:30:00"
+  actions:
+    - action: homeassistant.update_entity
+      target:
+        entity_id:
+          - sensor.efe_la_concepcion_francia_proximo_tren
+          - sensor.efe_francia_la_concepcion_proximo_tren
+  ```
+- Sin `modo`, `actualizar: true` muestra siempre el botón Actualizar.
+
+## Otros ejemplos
+
+Tarjeta estándar:
 
 ```yaml
 type: entities

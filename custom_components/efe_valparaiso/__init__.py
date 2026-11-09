@@ -4,10 +4,15 @@ from __future__ import annotations
 
 import ssl
 from datetime import timedelta
+from pathlib import Path
 
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.typing import ConfigType
 
 from .api import create_ssl_context
 from .const import (
@@ -18,10 +23,26 @@ from .const import (
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    VERSION,
 )
 from .coordinator import EfeCoordinator
 
 PLATFORMS = [Platform.SENSOR]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+CARD_FILE = Path(__file__).parent / "frontend" / "efe-valparaiso-card.js"
+CARD_URL = f"/{DOMAIN}/efe-valparaiso-card.js"
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Sirve la tarjeta `custom:efe-valparaiso-card` y la carga en el frontend."""
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(CARD_URL, str(CARD_FILE), True)]
+    )
+    # La versión en la URL evita que el navegador use una copia vieja tras actualizar.
+    if "frontend" in hass.config.components:
+        add_extra_js_url(hass, f"{CARD_URL}?v={VERSION}")
+    return True
 
 type EfeConfigEntry = ConfigEntry[EfeCoordinator]
 

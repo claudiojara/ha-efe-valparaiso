@@ -2,6 +2,7 @@
 
 import json
 import ssl
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -33,7 +34,7 @@ def test_parse_minutes(text, expected):
 
 def test_parse_with_services_keeps_fields():
     data = load("con_servicios.json")
-    result = api.parse_response(data, "u")
+    result = api.parse_response(data, "u", 18, 1)
     assert result.state == api.STATE_SERVICES
     assert len(result.services) == len(data["object"]["servicios"])
     for raw, parsed in zip(data["object"]["servicios"], result.services):
@@ -44,7 +45,7 @@ def test_parse_with_services_keeps_fields():
 
 
 def test_parse_empty_list_is_not_an_error():
-    result = api.parse_response(load("sin_servicios.json"), "u")
+    result = api.parse_response(load("sin_servicios.json"), "u", 18, 1)
     assert result.services == []
     assert result.state == api.STATE_NO_SERVICES
 
@@ -63,7 +64,7 @@ def test_parse_empty_list_is_not_an_error():
 )
 def test_parse_invalid_raises(data):
     with pytest.raises(api.EfeApiError):
-        api.parse_response(data, "u")
+        api.parse_response(data, "u", 18, 1)
 
 
 def test_ssl_context_keeps_verification():
@@ -71,3 +72,46 @@ def test_ssl_context_keeps_verification():
     assert ctx.verify_mode == ssl.CERT_REQUIRED
     assert ctx.check_hostname is True
     assert api.INTERMEDIATE_CERT.is_file()
+
+
+@pytest.mark.parametrize(
+    ("hasta", "expected"),
+    [("Hasta Puerto", 1), ("Hasta Sargento Aldea", 19), ("hasta  viña del mar", 8), ("Hasta Peñablanca", 20),
+     ("Puerto", 1), ("Hasta Marte", None), (None, None)],
+)
+def test_terminal_station(hasta, expected):
+    assert api.terminal_station(hasta) == expected
+
+
+@pytest.mark.parametrize(
+    ("terminal", "origin", "destination", "expected"),
+    [
+        (19, 18, 21, False),  # Villa Alemana → Limache, tren hasta Sargento Aldea
+        (21, 18, 21, True),
+        (19, 3, 17, True),    # Francia → La Concepción: Sargento Aldea pasa por La Concepción
+        (1, 17, 3, True),     # La Concepción → Francia, hasta Puerto
+        (8, 17, 3, False),    # tren que terminara en Viña del Mar no llega a Francia
+        (None, 18, 1, None),
+    ],
+)
+def test_reaches_destination(terminal, origin, destination, expected):
+    assert api.reaches_destination(terminal, origin, destination) is expected
+
+
+def test_parse_adds_derived_fields_without_touching_originals():
+    data = {
+        "status": "OK",
+        "message": {},
+        "object": {"servicios": [
+            {"hasta": "Hasta Sargento Aldea", "tipo": "simple", "tiempo": "8 minutos", "idServicio": "1"},
+            {"hasta": "Hasta Limache", "tipo": "doble", "tiempo": "cercano", "idServicio": "2"},
+        ]},
+    }
+    at = datetime(2026, 11, 9, 10, 33, 20, tzinfo=timezone.utc)
+    first, second = api.parse_response(data, "u", 18, 21, at).services
+    assert first["hasta"] == "Hasta Sargento Aldea" and first["tiempo"] == "8 minutos"
+    assert first["estacion_final"] == "Sargento Aldea"
+    assert first["llega_a_destino"] is False
+    assert first["hora_estimada"] == "2026-11-09T10:41+00:00"
+    assert second["llega_a_destino"] is True
+    assert second["minutos"] is None and second["hora_estimada"] is None  # «cercano»: sin inventar hora

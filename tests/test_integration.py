@@ -83,6 +83,11 @@ async def test_sensors_with_services(hass, aioclient_mock):
     assert nxt.attributes["estado_consulta"] == "servicios_informados"
     assert nxt.attributes["aviso_efe"] == "Servicio no disponible por el momento"
     assert len(nxt.attributes["servicios"]) == 3
+    assert nxt.attributes["origen"] == "Villa Alemana"
+    assert nxt.attributes["destino"] == "Puerto"
+    assert nxt.attributes["llega_a_destino"] is True
+    assert nxt.attributes["consultado_en"]
+    assert nxt.attributes["hora_estimada"]
     assert s["sensor.efe_villa_alemana_puerto_reported_services"].state == "3"
 
 
@@ -126,3 +131,32 @@ async def test_options_flow_sets_interval(hass, aioclient_mock):
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
     assert entry.runtime_data.update_interval.total_seconds() == 120
+
+
+def test_card_version_matches_manifest():
+    from custom_components.efe_valparaiso import CARD_FILE
+    from custom_components.efe_valparaiso.const import VERSION
+
+    manifest = json.loads((CARD_FILE.parents[1] / "manifest.json").read_text())
+    assert manifest["version"] == VERSION
+    assert f'const CARD_VERSION = "{VERSION}";' in CARD_FILE.read_text()
+
+
+async def test_card_is_served(hass, aioclient_mock, hass_client):
+    aioclient_mock.get(URL, json=fixture("con_servicios.json"))
+    await setup_entry(hass)
+    client = await hass_client()
+    resp = await client.get("/efe_valparaiso/efe-valparaiso-card.js")
+    assert resp.status == 200
+    assert "customElements.define(\"efe-valparaiso-card\"" in await resp.text()
+
+
+async def test_card_url_added_when_frontend_loaded(hass, aioclient_mock):
+    from unittest.mock import patch
+
+    aioclient_mock.get(URL, json=fixture("con_servicios.json"))
+    hass.config.components.add("frontend")
+    with patch("custom_components.efe_valparaiso.add_extra_js_url") as add_js:
+        await setup_entry(hass)
+    add_js.assert_called_once()
+    assert add_js.call_args.args[1].startswith("/efe_valparaiso/efe-valparaiso-card.js?v=")

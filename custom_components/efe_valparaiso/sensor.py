@@ -50,7 +50,9 @@ class NextTrainSensor(EfeEntity, SensorEntity):
 
     _attr_icon = "mdi:train"
     # La lista completa cambia en cada consulta; no se guarda en el historial.
-    _unrecorded_attributes = frozenset({"servicios", "operabilidad", "fuente", "aviso"})
+    _unrecorded_attributes = frozenset(
+        {"servicios", "operabilidad", "fuente", "aviso", "consultado_en"}
+    )
 
     def __init__(self, coordinator: EfeCoordinator) -> None:
         super().__init__(coordinator, "proximo_tren")
@@ -66,8 +68,14 @@ class NextTrainSensor(EfeEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data
         first = data.services[0] if data.services else {}
+        coordinator = self.coordinator
         return {
+            "origen": STATIONS[coordinator.origin],
+            "destino": STATIONS[coordinator.destination],
+            "consultado_en": data.fetched_at.isoformat() if data.fetched_at else None,
             "hasta": first.get("hasta"),
+            "llega_a_destino": first.get("llega_a_destino"),
+            "hora_estimada": first.get("hora_estimada"),
             "tipo": first.get("tipo"),
             "id_servicio": first.get("idServicio"),
             "minutos": first.get("minutos"),
