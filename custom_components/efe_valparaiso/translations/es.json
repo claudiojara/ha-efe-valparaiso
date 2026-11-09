@@ -41,5 +41,32 @@
         "name": "Servicios informados"
       }
     }
+  },
+  "services": {
+    "consultar": {
+      "name": "Consultar próximos trenes",
+      "description": "Próximos trenes entre dos estaciones, sin crear un dispositivo. Responde desde una caché de 20 s por par.",
+      "fields": {
+        "origen": {
+          "name": "Origen",
+          "description": "Nombre o ID de la estación (1 = Puerto … 21 = Limache)."
+        },
+        "destino": {
+          "name": "Destino",
+          "description": "Nombre o ID de la estación (1 = Puerto … 21 = Limache)."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_station": {
+      "message": "Estación desconocida."
+    },
+    "same_station": {
+      "message": "El origen y el destino deben ser distintos."
+    },
+    "source_unavailable": {
+      "message": "No fue posible obtener una respuesta válida de EFE."
+    }
   }
 }

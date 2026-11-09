@@ -1,0 +1,12 @@
+consultar:
+  fields:
+    origen:
+      required: true
+      example: "Villa Alemana"
+      selector:
+        text:
+    destino:
+      required: true
+      example: "Puerto"
+      selector:
+        text:

@@ -61,42 +61,74 @@ La integración trae su propia tarjeta; no hay que instalar nada más. Muestra u
 (por ejemplo ida y vuelta) con minutos, hora estimada, unidad simple/doble y los trenes siguientes. Los trenes
 que no llegan a tu destino quedan marcados con su estación final. Al tocar un trayecto se ve la lista completa.
 
+Se configura con el **editor visual** (estaciones en desplegables) o en YAML:
+
 ```yaml
 type: custom:efe-valparaiso-card
-titulo: Trabajo                         # opcional
-modo: input_boolean.tren_automatico     # opcional, ver abajo
+titulo: Trabajo                 # opcional
 trayectos:
-  - entity: sensor.efe_la_concepcion_francia_proximo_tren
-  - entity: sensor.efe_francia_la_concepcion_proximo_tren
-    nombre: Vuelta                      # opcional
+  - origen: La Concepción       # cualquier par de estaciones (nombre o ID 1–21)
+    destino: Francia
+  - origen: Francia
+    destino: La Concepción
+    nombre: Vuelta              # opcional
+actualizacion: auto             # auto | manual (también se cambia en la tarjeta)
+intervalo: 60                   # segundos entre consultas en automático, mínimo 30
+editable: true                  # tocar el nombre del trayecto para cambiar estaciones
 ```
 
+**Dos carriles independientes.** Los trayectos por estación se consultan con el servicio
+`efe_valparaiso.consultar`, bajo demanda: no crean dispositivos ni tocan tus sensores o automatizaciones.
+Los dispositivos que configuras en la integración (y sus sensores) siguen siendo los que usan tus
+automatizaciones. Ambos comparten una caché de 20 s por par, así que no se duplican consultas a EFE.
+
+- **Automático:** consulta cada `intervalo` segundos **solo mientras la tarjeta está visible** en pantalla.
+  Si nadie mira el panel, no consulta.
+- **Manual:** consulta una vez al abrir y luego solo con el botón Actualizar. El botón Auto/Manual de la tarjeta
+  cambia el modo y lo recuerda en ese navegador.
+- **Cambiar el trayecto en la tarjeta:** toca el nombre del trayecto (⇄), elige otras estaciones o invierte el
+  sentido. El cambio queda guardado solo en ese navegador; «Volver al configurado» lo deshace.
 - **Datos antiguos:** si la última consulta tiene 2 minutos o más, los números se ven atenuados y la tarjeta
   dice «Dato de hace N min».
-- **Modo automático/manual (opcional):** con `modo` apuntando a un `input_boolean`, la tarjeta muestra un botón
-  Auto/Manual; en manual aparece el botón Actualizar (`homeassistant.update_entity`). Para que «manual» de verdad
-  no consulte a EFE, desactiva el sondeo de las entradas (*⋮ → Opciones del sistema → Habilitar sondeo*) y crea
-  una automatización que actualice los sensores cuando el helper esté encendido, por ejemplo:
+- **Un sensor en vez de estaciones:** `- entity: sensor.efe_villa_alemana_puerto_proximo_tren` muestra exactamente
+  lo que ve ese sensor. Con `modo: input_boolean.x`, el botón Auto/Manual cambia ese helper (útil si tus
+  automatizaciones lo usan para decidir cuándo actualizar los sensores).
 
-  ```yaml
-  triggers:
-    - trigger: time_pattern
-      minutes: "/1"
-  conditions:
-    - condition: state
-      entity_id: input_boolean.tren_automatico
-      state: "on"
-    - condition: time
-      after: "06:00:00"
-      before: "23:30:00"
-  actions:
-    - action: homeassistant.update_entity
-      target:
-        entity_id:
-          - sensor.efe_la_concepcion_francia_proximo_tren
-          - sensor.efe_francia_la_concepcion_proximo_tren
-  ```
-- Sin `modo`, `actualizar: true` muestra siempre el botón Actualizar.
+Para que la tarjeta y el servicio existan, la integración tiene que tener **al menos un dispositivo
+configurado**.
+
+### Servicio `efe_valparaiso.consultar`
+
+```yaml
+action: efe_valparaiso.consultar
+data:
+  origen: Villa Alemana
+  destino: Limache
+response_variable: trenes
+```
+
+Devuelve `origen`, `destino`, `consultado_en`, `estado_consulta`, `aviso_efe`, `operabilidad`,
+`tiempo_real_confirmado: false` y `servicios` (con `estacion_final`, `llega_a_destino`, `minutos` y
+`hora_estimada`). Si EFE no responde, falla con un error (no devuelve una lista vacía).
+
+### Modo manual de los sensores (opcional)
+
+Para que los **sensores** no consulten a EFE fuera de un horario, desactiva el sondeo de sus entradas
+(*⋮ → Opciones del sistema → Habilitar sondeo*) y actualízalos con una automatización:
+
+```yaml
+triggers:
+  - trigger: time_pattern
+    minutes: "/1"
+conditions:
+  - condition: time
+    after: "06:00:00"
+    before: "23:30:00"
+actions:
+  - action: homeassistant.update_entity
+    target:
+      entity_id: sensor.efe_villa_alemana_puerto_proximo_tren
+```
 
 ## Otros ejemplos
 

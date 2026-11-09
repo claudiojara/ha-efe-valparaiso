@@ -84,6 +84,20 @@ def terminal_station(hasta: Any) -> int | None:
     return _STATION_BY_NAME.get(text)
 
 
+def resolve_station(value: Any) -> int | None:
+    """Estación por ID (1–21, número o texto) o por nombre, sin importar tildes ni mayúsculas."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value in STATIONS else None
+    if isinstance(value, str):
+        text = value.strip()
+        if text.isdigit():
+            return int(text) if int(text) in STATIONS else None
+        return _STATION_BY_NAME.get(_normalize(text))
+    return None
+
+
 def reaches_destination(terminal: int | None, origin: int, destination: int) -> bool | None:
     """Si un tren que termina en `terminal` pasa por `destination`.
 
@@ -198,3 +212,20 @@ async def fetch_departures(
     except ValueError as err:
         raise EfeApiError("EFE no devolvió JSON válido") from err
     return parse_response(data, url, origin, destination, now)
+
+
+def as_payload(data: Departures, origin: int, destination: int) -> dict[str, Any]:
+    """Respuesta para el servicio `consultar` y la tarjeta (misma forma que los atributos)."""
+    return {
+        "origen": STATIONS[origin],
+        "origen_id": origin,
+        "destino": STATIONS[destination],
+        "destino_id": destination,
+        "consultado_en": data.fetched_at.isoformat() if data.fetched_at else None,
+        "estado_consulta": data.state,
+        "tiempo_real_confirmado": False,
+        "aviso": NOTICE,
+        "aviso_efe": data.warning,
+        "operabilidad": data.operability,
+        "servicios": data.services,
+    }

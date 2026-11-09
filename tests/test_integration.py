@@ -114,6 +114,7 @@ async def test_failure_after_setup_makes_unavailable(hass, aioclient_mock):
     entry = await setup_entry(hass)
     aioclient_mock.clear_requests()
     aioclient_mock.get(URL, json={"status": "OK"})  # formato cambiado
+    hass.data[DOMAIN]["hub"]._cache.clear()  # sin esperar la caché de 20 s
     await entry.runtime_data.async_refresh()
     await hass.async_block_till_done()
     s = states(hass)
@@ -160,3 +161,50 @@ async def test_card_url_added_when_frontend_loaded(hass, aioclient_mock):
         await setup_entry(hass)
     add_js.assert_called_once()
     assert add_js.call_args.args[1].startswith("/efe_valparaiso/efe-valparaiso-card.js?v=")
+
+
+async def test_service_consultar_any_pair(hass, aioclient_mock):
+    import pytest
+    from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+
+    aioclient_mock.get(URL, json=fixture("con_servicios.json"))
+    await setup_entry(hass)
+    other = build_url(17, 3)
+    aioclient_mock.get(other, json=fixture("con_servicios.json"))
+    calls_before = aioclient_mock.call_count
+    resp = await hass.services.async_call(
+        DOMAIN, "consultar", {"origen": "la concepcion", "destino": 3}, blocking=True, return_response=True
+    )
+    assert resp["origen"] == "La Concepción" and resp["destino"] == "Francia"
+    assert resp["estado_consulta"] == "servicios_informados"
+    assert resp["tiempo_real_confirmado"] is False
+    assert len(resp["servicios"]) == 3 and "llega_a_destino" in resp["servicios"][0]
+    # Segunda consulta dentro de 20 s: desde la caché, sin llamar a EFE.
+    await hass.services.async_call(
+        DOMAIN, "consultar", {"origen": 17, "destino": "Francia"}, blocking=True, return_response=True
+    )
+    assert aioclient_mock.call_count == calls_before + 1
+    # El sensor del par configurado comparte la caché.
+    resp = await hass.services.async_call(
+        DOMAIN, "consultar", {"origen": 18, "destino": 1}, blocking=True, return_response=True
+    )
+    assert aioclient_mock.call_count == calls_before + 1
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "consultar", {"origen": "Marte", "destino": 1}, blocking=True, return_response=True)
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "consultar", {"origen": 5, "destino": "portales"}, blocking=True, return_response=True)
+    aioclient_mock.get(build_url(1, 21), status=502)
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(DOMAIN, "consultar", {"origen": 1, "destino": 21}, blocking=True, return_response=True)
+
+
+def test_card_station_list_matches_integration():
+    import re
+
+    from custom_components.efe_valparaiso import CARD_FILE
+    from custom_components.efe_valparaiso.const import STATIONS
+
+    js = CARD_FILE.read_text()
+    block = js[js.index("const STATIONS = [") : js.index("];", js.index("const STATIONS = ["))]
+    pairs = {int(i): name for i, name in re.findall(r'\[(\d+), "([^"]+)"\]', block)}
+    assert pairs == STATIONS

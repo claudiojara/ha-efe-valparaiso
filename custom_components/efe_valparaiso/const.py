@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 DOMAIN = "efe_valparaiso"
-VERSION = "0.2.0"  # igual que manifest.json
+VERSION = "0.3.0"  # igual que manifest.json
 
 # Fuente pública y sin autenticación que usa la app EFE para «Próximos trenes».
 API_URL = "https://ms4.metrovalparaiso.cl/"
@@ -18,6 +18,8 @@ DEFAULT_SCAN_INTERVAL = 60  # segundos
 MIN_SCAN_INTERVAL = 30
 MAX_SCAN_INTERVAL = 900
 MAX_BACKOFF = timedelta(minutes=10)
+CACHE_SECONDS = 20  # una respuesta de EFE se reutiliza por par durante este tiempo
+SERVICE_CONSULTAR = "consultar"
 REQUEST_TIMEOUT = 15
 MAX_RESPONSE_BYTES = 1_048_576
 

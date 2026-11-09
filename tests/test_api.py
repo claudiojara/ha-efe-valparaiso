@@ -115,3 +115,12 @@ def test_parse_adds_derived_fields_without_touching_originals():
     assert first["hora_estimada"] == "2026-11-09T10:41+00:00"
     assert second["llega_a_destino"] is True
     assert second["minutos"] is None and second["hora_estimada"] is None  # «cercano»: sin inventar hora
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(18, 18), ("18", 18), ("Villa Alemana", 18), ("viña del mar", 8), ("PEÑABLANCA", 20), (0, None), (22, None),
+     ("Marte", None), (True, None), (None, None)],
+)
+def test_resolve_station(value, expected):
+    assert api.resolve_station(value) == expected

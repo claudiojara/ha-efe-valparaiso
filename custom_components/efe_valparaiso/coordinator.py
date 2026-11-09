@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import logging
-import ssl
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.util import dt as dt_util
 
-from .api import Departures, EfeApiError, fetch_departures
+from .api import Departures, EfeApiError
 from .const import DOMAIN, MAX_BACKOFF
+from .hub import EfeHub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +23,7 @@ class EfeCoordinator(DataUpdateCoordinator[Departures]):
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
-        ssl_context: ssl.SSLContext,
+        hub: EfeHub,
         origin: int,
         destination: int,
         interval: timedelta,
@@ -39,18 +37,12 @@ class EfeCoordinator(DataUpdateCoordinator[Departures]):
         )
         self.origin = origin
         self.destination = destination
-        self._ssl_context = ssl_context
+        self._hub = hub
         self._base_interval = interval
 
     async def _async_update_data(self) -> Departures:
         try:
-            data = await fetch_departures(
-                async_get_clientsession(self.hass),
-                self._ssl_context,
-                self.origin,
-                self.destination,
-                dt_util.now(),
-            )
+            data = await self._hub.departures(self.origin, self.destination)
         except EfeApiError as err:
             # Con la fuente caída se consulta cada vez menos, hasta 10 minutos.
             cap = max(self._base_interval, MAX_BACKOFF)

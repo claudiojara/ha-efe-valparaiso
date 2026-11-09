@@ -41,5 +41,32 @@
         "name": "Reported services"
       }
     }
+  },
+  "services": {
+    "consultar": {
+      "name": "Query next trains",
+      "description": "Next trains between two stations, without creating a device. Answers from a 20 s cache per pair.",
+      "fields": {
+        "origen": {
+          "name": "Origin",
+          "description": "Station name or ID (1 = Puerto … 21 = Limache)."
+        },
+        "destino": {
+          "name": "Destination",
+          "description": "Station name or ID (1 = Puerto … 21 = Limache)."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_station": {
+      "message": "Unknown station."
+    },
+    "same_station": {
+      "message": "Origin and destination must be different."
+    },
+    "source_unavailable": {
+      "message": "Could not get a valid response from EFE."
+    }
   }
 }
