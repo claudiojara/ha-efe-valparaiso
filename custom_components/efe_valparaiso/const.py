@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 DOMAIN = "efe_valparaiso"
-VERSION = "0.3.0"  # igual que manifest.json
+VERSION = "0.3.1"  # igual que manifest.json
 
 # Fuente pública y sin autenticación que usa la app EFE para «Próximos trenes».
 API_URL = "https://ms4.metrovalparaiso.cl/"

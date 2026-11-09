@@ -13,7 +13,7 @@
  * intervalo: 60                   # segundos entre consultas en automático (mínimo 30)
  * editable: true                  # tocar el nombre del trayecto para cambiar estaciones
  */
-const CARD_VERSION = "0.3.0";
+const CARD_VERSION = "0.3.1";
 const STALE_MINUTES = 2;
 const MIN_INTERVAL = 30;
 
@@ -562,7 +562,10 @@ class EfeValparaisoCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    if (this._form) this._form.hass = hass;
+    if (this._form) {
+      this._form.hass = hass;
+      if (!this._form.isConnected) this.shadowRoot?.getElementById("root")?.appendChild(this._form);
+    }
   }
 
   connectedCallback() {
@@ -591,11 +594,14 @@ class EfeValparaisoCardEditor extends HTMLElement {
     root.innerHTML = "";
     if (this._mode === "ha-form") {
       const form = document.createElement("ha-form");
+      // hass, datos y schema antes de insertarlo: sus selectores los necesitan al dibujarse.
+      form.hass = this._hass;
+      form.data = configToForm(this._config ?? { trayectos: [] });
       form.schema = EDITOR_SCHEMA;
       form.computeLabel = (s) => EDITOR_LABELS[s.name] ?? s.title ?? s.name;
       form.addEventListener("value-changed", (ev) => { ev.stopPropagation(); this._emit(ev.detail.value); });
       this._form = form;
-      root.appendChild(form);
+      if (this._hass) root.appendChild(form);
     } else {
       this._form = null;
       root.innerHTML = this._fallbackHtml();
