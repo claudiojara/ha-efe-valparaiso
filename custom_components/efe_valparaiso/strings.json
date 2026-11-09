@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EFE Valparaíso next trains",
+        "description": "Choose the origin and destination stations. Each pair creates a device.",
+        "data": {
+          "origen": "Origin station",
+          "destino": "Destination station"
+        }
+      }
+    },
+    "error": {
+      "same_station": "Origin and destination must be different.",
+      "unknown_station": "Unknown station.",
+      "cannot_connect": "Could not get a valid response from EFE. Try again later."
+    },
+    "abort": {
+      "already_configured": "This origin/destination pair is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "scan_interval": "Polling interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "Minimum 30 s. Every installation queries EFE directly: don't lower it without need."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "proximo_tren": {
+        "name": "Next train"
+      },
+      "servicios_informados": {
+        "name": "Reported services"
+      }
+    }
+  }
+}

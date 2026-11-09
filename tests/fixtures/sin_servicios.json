@@ -1,0 +1,25 @@
+{
+  "message": {
+    "notice": "Información procesada correctamente.",
+    "dataSip": {
+      "Version": "10.20.8 (Build 0125) ",
+      "DateTime": "08-11-2026 12:42:41"
+    },
+    "serviceState": {
+      "isActive": 1,
+      "warningMessage": "Servicio no disponible por el momento"
+    },
+    "operability": {
+      "via1": "NO",
+      "via2": "NO",
+      "day": "DOMINGO"
+    }
+  },
+  "status": "OK",
+  "object": {
+    "servicios": [],
+    "estado": {
+      "tramos": []
+    }
+  }
+}

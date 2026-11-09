@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Próximos trenes EFE Valparaíso",
+        "description": "Elige la estación de origen y la de destino. Cada par crea un dispositivo.",
+        "data": {
+          "origen": "Estación de origen",
+          "destino": "Estación de destino"
+        }
+      }
+    },
+    "error": {
+      "same_station": "El origen y el destino deben ser distintos.",
+      "unknown_station": "Estación desconocida.",
+      "cannot_connect": "No fue posible obtener una respuesta válida de EFE. Inténtalo más tarde."
+    },
+    "abort": {
+      "already_configured": "Este par origen/destino ya está configurado."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones",
+        "data": {
+          "scan_interval": "Intervalo de consulta (segundos)"
+        },
+        "data_description": {
+          "scan_interval": "Mínimo 30 s. Cada instalación consulta directamente a EFE: no lo bajes sin necesidad."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "proximo_tren": {
+        "name": "Próximo tren"
+      },
+      "servicios_informados": {
+        "name": "Servicios informados"
+      }
+    }
+  }
+}

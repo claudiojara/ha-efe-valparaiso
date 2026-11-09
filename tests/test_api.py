@@ -1,0 +1,73 @@
+"""Pruebas del cliente sin Home Assistant en marcha."""
+
+import json
+import ssl
+from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
+
+import pytest
+
+from custom_components.efe_valparaiso import api
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def load(name):
+    return json.loads((FIXTURES / name).read_text())
+
+
+def test_build_url():
+    url = api.build_url(18, 1)
+    parts = urlsplit(url)
+    assert f"{parts.scheme}://{parts.netloc}/" == "https://ms4.metrovalparaiso.cl/"
+    assert json.loads(parse_qs(parts.query)["arg"][0]) == {"idOrigen": 18, "idDestino": 1}
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("6 minutos", 6), ("1 minuto", 1), ("cercano", None), ("", None), (None, None), ("6 min", None)],
+)
+def test_parse_minutes(text, expected):
+    assert api.parse_minutes(text) == expected
+
+
+def test_parse_with_services_keeps_fields():
+    data = load("con_servicios.json")
+    result = api.parse_response(data, "u")
+    assert result.state == api.STATE_SERVICES
+    assert len(result.services) == len(data["object"]["servicios"])
+    for raw, parsed in zip(data["object"]["servicios"], result.services):
+        assert {k: parsed[k] for k in raw} == raw  # campos originales intactos
+    assert result.services[0]["minutos"] == 10
+    assert result.warning == "Servicio no disponible por el momento"
+    assert result.operability["via1"] == "YES"
+
+
+def test_parse_empty_list_is_not_an_error():
+    result = api.parse_response(load("sin_servicios.json"), "u")
+    assert result.services == []
+    assert result.state == api.STATE_NO_SERVICES
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        None,
+        [],
+        {"status": "ERROR"},
+        {"status": "OK", "message": {}},
+        {"status": "OK", "message": {}, "object": {}},
+        {"status": "OK", "object": {"servicios": []}},
+        {"status": "OK", "message": {}, "object": {"servicios": ["x"]}},
+    ],
+)
+def test_parse_invalid_raises(data):
+    with pytest.raises(api.EfeApiError):
+        api.parse_response(data, "u")
+
+
+def test_ssl_context_keeps_verification():
+    ctx = api.create_ssl_context()
+    assert ctx.verify_mode == ssl.CERT_REQUIRED
+    assert ctx.check_hostname is True
+    assert api.INTERMEDIATE_CERT.is_file()

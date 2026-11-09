@@ -1,0 +1,12 @@
+{
+  "domain": "efe_valparaiso",
+  "name": "EFE Valparaíso",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/OWNER/ha-efe-valparaiso",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/OWNER/ha-efe-valparaiso/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

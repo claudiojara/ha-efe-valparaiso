@@ -1,0 +1,44 @@
+{
+    "message": {
+        "notice": "Información procesada correctamente.",
+        "dataSip": {
+            "Version": "10.20.8 (Build 0125) ",
+            "DateTime": "09-11-2026 09:33:29"
+        },
+        "serviceState": {
+            "isActive": 1,
+            "warningMessage": "Servicio no disponible por el momento"
+        },
+        "operability": {
+            "via1": "YES",
+            "via2": "YES",
+            "day": "LUNES"
+        }
+    },
+    "status": "OK",
+    "object": {
+        "servicios": [
+            {
+                "hasta": "Hasta Puerto",
+                "tipo": "simple",
+                "tiempo": "10 minutos",
+                "idServicio": "605"
+            },
+            {
+                "hasta": "Hasta Puerto",
+                "tipo": "doble",
+                "tiempo": "20 minutos",
+                "idServicio": "656"
+            },
+            {
+                "hasta": "Hasta Puerto",
+                "tipo": "doble",
+                "tiempo": "32 minutos",
+                "idServicio": "657"
+            }
+        ],
+        "estado": {
+            "tramos": []
+        }
+    }
+}
