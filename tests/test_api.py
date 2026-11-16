@@ -124,3 +124,28 @@ def test_parse_adds_derived_fields_without_touching_originals():
 )
 def test_resolve_station(value, expected):
     assert api.resolve_station(value) == expected
+
+
+class _ChunkedContent:
+    def __init__(self, chunks):
+        self._chunks = chunks
+
+    async def iter_chunked(self, _size):
+        for chunk in self._chunks:
+            yield chunk
+
+
+class _Resp:
+    def __init__(self, chunks):
+        self.content = _ChunkedContent(chunks)
+
+
+async def test_read_limited_joins_every_chunk():
+    body = (FIXTURES / "con_servicios.json").read_bytes()
+    chunks = [body[i : i + 7] for i in range(0, len(body), 7)]   # llega en muchos trozos
+    assert await api.read_limited(_Resp(chunks), 1_000_000) == body
+
+
+async def test_read_limited_stops_past_the_limit():
+    data = await api.read_limited(_Resp([b"x" * 10] * 5), 25)
+    assert len(data) == 26   # limit + 1: fetch_departures lo rechaza por tamaño

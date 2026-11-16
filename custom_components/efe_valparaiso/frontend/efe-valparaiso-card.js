@@ -13,7 +13,7 @@
  * intervalo: 60                   # segundos entre consultas en automático (mínimo 30)
  * editable: true                  # tocar el nombre del trayecto para cambiar estaciones
  */
-const CARD_VERSION = "0.3.1";
+const CARD_VERSION = "0.3.2";
 const STALE_MINUTES = 2;
 const MIN_INTERVAL = 30;
 

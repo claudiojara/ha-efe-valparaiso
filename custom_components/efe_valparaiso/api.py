@@ -183,6 +183,20 @@ def parse_response(
     )
 
 
+async def read_limited(resp: aiohttp.ClientResponse, limit: int) -> bytes:
+    """Cuerpo completo de la respuesta, con tope. `resp.content.read(n)` no sirve: devuelve solo
+    lo que ya llegó, y una respuesta partida en trozos quedaría cortada («EFE no devolvió JSON
+    válido»). Devuelve como máximo `limit + 1` bytes para detectar el exceso."""
+    chunks: list[bytes] = []
+    size = 0
+    async for chunk in resp.content.iter_chunked(65536):
+        chunks.append(chunk)
+        size += len(chunk)
+        if size > limit:
+            break
+    return b"".join(chunks)[: limit + 1]
+
+
 async def fetch_departures(
     session: aiohttp.ClientSession,
     ssl_context: ssl.SSLContext,
@@ -200,7 +214,7 @@ async def fetch_departures(
             timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT),
         ) as resp:
             resp.raise_for_status()
-            body = await resp.content.read(MAX_RESPONSE_BYTES + 1)
+            body = await read_limited(resp, MAX_RESPONSE_BYTES)
     except aiohttp.ClientResponseError as err:
         raise EfeApiError(f"EFE respondió HTTP {err.status}") from err
     except (aiohttp.ClientError, TimeoutError) as err:
